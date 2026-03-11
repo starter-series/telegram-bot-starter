@@ -1,0 +1,65 @@
+name: Template Setup
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  setup:
+    if: github.event.created || github.run_number == 1
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check if template
+        id: check
+        run: |
+          NAME=$(node -p "require('./package.json').name")
+          if [ "$NAME" = "telegram-bot-starter" ]; then
+            echo "is_template=true" >> $GITHUB_OUTPUT
+          else
+            echo "is_template=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Create setup checklist
+        if: steps.check.outputs.is_template == 'true'
+        run: |
+          gh issue create \
+            --title "Setup Checklist" \
+            --body "$(cat <<'ISSUE_BODY'
+          ## Required
+
+          - [ ] Copy \`.env.example\` to \`.env\` and fill in your bot token
+          - [ ] Update \`package.json\` (name, description)
+
+          ## Telegram Bot Setup
+
+          Follow [docs/BOT_SETUP.md](docs/BOT_SETUP.md) to:
+
+          - [ ] Create a bot with [@BotFather](https://t.me/BotFather)
+          - [ ] Copy the bot token → \`BOT_TOKEN\`
+          - [ ] Set bot commands with BotFather (optional)
+
+          ## CI/CD Setup (choose one)
+
+          ### Option A: Railway
+          Follow [docs/RAILWAY_DEPLOY.md](docs/RAILWAY_DEPLOY.md) to:
+          - [ ] Add secret: \`RAILWAY_TOKEN\`
+          - [ ] Add secret: \`RAILWAY_SERVICE_ID\`
+
+          ### Option B: Fly.io
+          Follow [docs/FLY_DEPLOY.md](docs/FLY_DEPLOY.md) to:
+          - [ ] Add secret: \`FLY_API_TOKEN\`
+          - [ ] Create \`fly.toml\` from \`fly.toml.example\`
+
+          ## Recommended
+
+          - [ ] Remove the echo handler or replace with your own logic
+          - [ ] Write tests for your commands
+          - [ ] Delete this issue when done
+          ISSUE_BODY
+          )"
+        env:
+          GH_TOKEN: ${{ github.token }}

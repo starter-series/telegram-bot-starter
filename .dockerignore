@@ -1,0 +1,14 @@
+.git
+.github
+.gitignore
+.env
+.env.*
+!.env.example
+.idea
+.DS_Store
+node_modules
+tests
+docs
+scripts
+*.md
+.eslintrc.json

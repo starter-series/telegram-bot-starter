@@ -1,0 +1,28 @@
+{
+  "name": "telegram-bot-starter",
+  "version": "1.0.0",
+  "description": "Production-ready Telegram bot template with CI/CD and one-click deployment",
+  "main": "src/index.js",
+  "private": true,
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "nodemon src/index.js",
+    "lint": "eslint src/",
+    "test": "jest --verbose --passWithNoTests",
+    "version:patch": "node scripts/bump-version.js patch",
+    "version:minor": "node scripts/bump-version.js minor",
+    "version:major": "node scripts/bump-version.js major"
+  },
+  "dependencies": {
+    "grammy": "^1.35.0",
+    "dotenv": "^16.4.7"
+  },
+  "devDependencies": {
+    "eslint": "^8.57.0",
+    "jest": "^30.2.0",
+    "nodemon": "^3.1.9"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

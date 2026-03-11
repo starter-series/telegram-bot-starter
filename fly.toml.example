@@ -1,0 +1,10 @@
+# Rename to fly.toml and update app name
+# Run: fly launch --no-deploy
+
+app = "your-bot-name"
+primary_region = "nrt"
+
+[build]
+
+[env]
+  PORT = "3000"
