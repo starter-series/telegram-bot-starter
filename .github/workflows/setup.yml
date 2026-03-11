@@ -6,7 +6,7 @@ on:
 
 jobs:
   setup:
-    if: github.event.created || github.run_number == 1
+    if: github.run_number == 1
     runs-on: ubuntu-latest
     permissions:
       issues: write
@@ -23,8 +23,17 @@ jobs:
             echo "is_template=false" >> $GITHUB_OUTPUT
           fi
 
-      - name: Create setup checklist
+      - name: Check if setup issue exists
+        id: issue
         if: steps.check.outputs.is_template == 'true'
+        run: |
+          COUNT=$(gh issue list --search "Setup Checklist" --state all --json number --jq 'length')
+          echo "exists=$([ "$COUNT" -gt 0 ] && echo true || echo false)" >> $GITHUB_OUTPUT
+        env:
+          GH_TOKEN: ${{ github.token }}
+
+      - name: Create setup checklist
+        if: steps.check.outputs.is_template == 'true' && steps.issue.outputs.exists == 'false'
         run: |
           gh issue create \
             --title "Setup Checklist" \

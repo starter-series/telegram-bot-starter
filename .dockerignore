@@ -11,4 +11,4 @@ tests
 docs
 scripts
 *.md
-.eslintrc.json
+eslint.config.js
