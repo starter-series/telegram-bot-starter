@@ -30,7 +30,7 @@ jobs:
           fi
 
       - name: Setup Fly.io CLI
-        uses: superfly/flyctl-actions/setup-flyctl@master
+        uses: superfly/flyctl-actions/setup-flyctl@v2
 
       - name: Deploy
         run: flyctl deploy --remote-only
