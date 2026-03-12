@@ -3,6 +3,10 @@ name: Deploy to Railway
 on:
   workflow_dispatch:
 
+concurrency:
+  group: deploy-railway
+  cancel-in-progress: false
+
 permissions:
   contents: write
 
@@ -26,6 +30,16 @@ jobs:
         run: |
           if git ls-remote --tags origin | grep -q "refs/tags/v${{ steps.version.outputs.version }}$"; then
             echo "::error::Tag v${{ steps.version.outputs.version }} already exists. Run 'npm run version:patch' first."
+            exit 1
+          fi
+
+      - name: Validate secrets
+        run: |
+          MISSING=""
+          if [ -z "${{ secrets.RAILWAY_TOKEN }}" ]; then MISSING="$MISSING RAILWAY_TOKEN"; fi
+          if [ -z "${{ secrets.RAILWAY_SERVICE_ID }}" ]; then MISSING="$MISSING RAILWAY_SERVICE_ID"; fi
+          if [ -n "$MISSING" ]; then
+            echo "::error::Missing required secrets:$MISSING — See docs/RAILWAY_DEPLOY.md"
             exit 1
           fi
 
