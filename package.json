@@ -6,7 +6,7 @@
   "private": true,
   "scripts": {
     "start": "node src/index.js",
-    "dev": "nodemon src/index.js",
+    "dev": "node --watch src/index.js",
     "lint": "eslint src/",
     "test": "jest --verbose --passWithNoTests",
     "version:patch": "node scripts/bump-version.js patch",
@@ -21,8 +21,7 @@
     "@eslint/js": "^10.0.1",
     "eslint": "^10.0.3",
     "globals": "^17.4.0",
-    "jest": "^30.3.0",
-    "nodemon": "^3.1.9"
+    "jest": "^30.3.0"
   },
   "engines": {
     "node": ">=20"
