@@ -23,3 +23,4 @@ This template includes automated security checks in CI:
 - Never commit `.env` files or secrets — they are gitignored by default
 - Use GitHub Secrets for deployment credentials
 - Keep dependencies up to date by merging Dependabot PRs
+- **Command injection** — Never pass user message content to `child_process.exec()` or `eval()`. If your bot runs shell commands, use `execFile()` with explicit argument arrays and validate all inputs against an allowlist.
