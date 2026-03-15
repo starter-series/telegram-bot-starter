@@ -94,6 +94,15 @@ npm run dev
 | Lint | ESLint for code quality |
 | Test | Jest (passes with no tests by default) |
 | Docker build | Builds the container image to catch build errors |
+| Trivy scan | Scans the container image for CRITICAL/HIGH CVEs |
+
+### Security & Maintenance
+
+| Workflow | What it does |
+|----------|-------------|
+| CodeQL (`codeql.yml`) | Static analysis for security vulnerabilities (push/PR + weekly) |
+| Maintenance (`maintenance.yml`) | Weekly CI health check — auto-creates issue on failure |
+| Stale (`stale.yml`) | Labels inactive issues/PRs after 30 days, auto-closes after 7 more |
 
 ### CD (manual trigger via Actions tab)
 
