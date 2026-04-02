@@ -2,6 +2,7 @@ const { Bot } = require('grammy');
 const config = require('./config');
 const { registerCommands } = require('./commands');
 const { registerHandlers } = require('./handlers');
+const log = require('./lib/logger');
 
 const bot = new Bot(config.botToken);
 
@@ -9,13 +10,14 @@ registerCommands(bot);
 registerHandlers(bot);
 
 bot.catch((err) => {
-  console.error('Bot error:', err);
+  log.error('bot', 'Unhandled error', { error: String(err) });
 });
 
 let server;
 
 // Graceful shutdown
 const shutdown = () => {
+  log.info('lifecycle', 'Shutting down...');
   bot.stop();
   if (server) server.close();
   process.exit(0);
@@ -30,17 +32,17 @@ if (config.webhookUrl) {
 
   server = http.createServer(webhookCallback(bot, 'http'));
   server.listen(config.port, () => {
-    console.log(`Webhook server running on port ${config.port}`);
+    log.info('webhook', `Webhook server running on port ${config.port}`);
   });
 
   bot.api.setWebhook(config.webhookUrl).then(() => {
-    console.log(`Webhook set to ${config.webhookUrl}`);
+    log.info('webhook', `Webhook set to ${config.webhookUrl}`);
   }).catch((err) => {
-    console.error('Failed to set webhook:', err);
+    log.error('webhook', 'Failed to set webhook', { error: String(err) });
     process.exit(1);
   });
 } else {
   bot.start({
-    onStart: () => console.log('Bot started with long polling'),
+    onStart: () => log.info('polling', 'Bot started with long polling'),
   });
 }
