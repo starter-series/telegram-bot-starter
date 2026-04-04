@@ -31,6 +31,9 @@ if (config.webhookUrl) {
   const http = require('http');
 
   server = http.createServer(webhookCallback(bot, 'http'));
+  server.on('error', (err) => {
+    log.error('webhook', 'Server error', { error: String(err) });
+  });
   server.listen(config.port, () => {
     log.info('webhook', `Webhook server running on port ${config.port}`);
   });
