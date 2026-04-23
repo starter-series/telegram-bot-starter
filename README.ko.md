@@ -25,21 +25,25 @@
 
 ## 빠른 시작
 
+**[create-starter](https://github.com/starter-series/create-starter) 사용** (권장):
+
 ```bash
-# 1. GitHub에서 "Use this template" 클릭 (또는 clone)
-git clone https://github.com/starter-series/telegram-bot-starter.git my-bot
-cd my-bot
-
-# 2. 의존성 설치
-npm install
-
-# 3. 환경 설정 (자세한 가이드: docs/TELEGRAM_SETUP.md)
-cp .env.example .env
-# .env 편집 → @BotFather에서 받은 BOT_TOKEN 입력
-
-# 4. 봇 시작
+npx @starter-series/create my-telegram-bot --template telegram-bot
+cd my-telegram-bot && npm install
+cp .env.example .env  # @BotFather에서 받은 BOT_TOKEN 입력
 npm run dev
 ```
+
+**또는 직접 clone:**
+
+```bash
+git clone https://github.com/starter-series/telegram-bot-starter my-telegram-bot
+cd my-telegram-bot && npm install
+cp .env.example .env
+npm run dev
+```
+
+BotFather 상세 가이드는 [docs/TELEGRAM_SETUP.md](docs/TELEGRAM_SETUP.md) 참고.
 
 ## 구성
 
