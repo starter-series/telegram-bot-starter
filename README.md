@@ -25,21 +25,25 @@ Build your bot. Push to deploy.
 
 ## Quick Start
 
+**Via [create-starter](https://github.com/starter-series/create-starter)** (recommended):
+
 ```bash
-# 1. Click "Use this template" on GitHub (or clone)
-git clone https://github.com/starter-series/telegram-bot-starter.git my-bot
-cd my-bot
-
-# 2. Install dependencies
-npm install
-
-# 3. Set up environment (see docs/TELEGRAM_SETUP.md for detailed guide)
-cp .env.example .env
-# Edit .env → add BOT_TOKEN from @BotFather
-
-# 4. Start the bot
+npx @starter-series/create my-telegram-bot --template telegram-bot
+cd my-telegram-bot && npm install
+cp .env.example .env  # fill in BOT_TOKEN from @BotFather
 npm run dev
 ```
+
+**Or clone directly:**
+
+```bash
+git clone https://github.com/starter-series/telegram-bot-starter my-telegram-bot
+cd my-telegram-bot && npm install
+cp .env.example .env
+npm run dev
+```
+
+See [docs/TELEGRAM_SETUP.md](docs/TELEGRAM_SETUP.md) for the detailed BotFather guide.
 
 ## What's Included
 
