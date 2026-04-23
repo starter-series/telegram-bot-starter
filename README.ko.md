@@ -50,12 +50,17 @@ npm run dev
 │   ├── commands/                 # 봇 커맨드 (자동 로드)
 │   │   ├── start.js              # /start — 인사
 │   │   └── help.js               # /help — 커맨드 목록
-│   └── handlers/                 # 메시지 핸들러 (자동 로드)
-│       └── echo.js               # 텍스트 에코
+│   ├── handlers/                 # 메시지 핸들러 (자동 로드)
+│   │   └── echo.js               # 텍스트 에코
+│   └── lib/
+│       ├── health.js             # GET /health HTTP 서버
+│       ├── logger.js             # 구조화 JSON 로거
+│       └── rate-limiter.js       # 사용자별 레이트 리미터
 ├── scripts/
 │   └── bump-version.js           # 버전 범프
 ├── tests/
-│   └── commands.test.js          # 구조 검증 테스트
+│   ├── commands.test.js          # 커맨드 + 핸들러 테스트
+│   └── health.test.js            # 헬스 엔드포인트 테스트
 ├── Dockerfile                    # 프로덕션 컨테이너
 ├── docker-compose.yml            # 핫 리로드 개발
 ├── .github/
@@ -78,6 +83,7 @@ npm run dev
 - **CD 파이프라인** — 원클릭 Railway 또는 Fly.io 배포 + GitHub Release 자동 생성
 - **Docker** — 프로덕션 Dockerfile + 핫 리로드 개발 compose
 - **폴링 & 웹훅** — 기본은 롱 폴링, 환경변수로 웹훅 모드 전환
+- **헬스 체크** — `GET /health` + Docker `HEALTHCHECK` 내장 — Fly.io / Railway가 죽은 봇을 감지
 - **버전 관리** — `npm run version:patch/minor/major`
 - **개발 모드** — `npm run dev`로 `node --watch` 라이브 리로드
 - **스타터 코드** — `/start` + `/help` 커맨드, 에코 핸들러, 모듈러 구조
@@ -173,6 +179,47 @@ module.exports = {
 ```
 
 커맨드는 자동 로드됩니다 — 다른 파일 수정 불필요.
+
+## 헬스 체크
+
+봇은 작은 HTTP 헬스 서버(`src/lib/health.js`)를 엽니다. Docker, Fly.io, Railway가 봇 프로세스 크래시/연결 끊김을 감지하는 용도입니다.
+
+| 모드 | 포트 | 엔드포인트 |
+|------|------|-----------|
+| 폴링 (기본) | `HEALTH_PORT` (기본값 `3000`) — 별도 서버 | `GET /health` |
+| 웹훅 (`WEBHOOK_URL` 설정 시) | `PORT` — 웹훅 서버에 마운트, 추가 리스너 없음 | `GET /health` |
+
+| 상태 | 응답 |
+|------|------|
+| `200 OK` (ready) | `{ "status": "ok", "uptime": <초>, "mode": "polling"\|"webhook" }` |
+| `503 Service Unavailable` (시작 중 / 연결 끊김) | `{ "status": "starting", "uptime": <초>, "mode": "polling"\|"webhook" }` |
+
+**설정**
+
+```bash
+# .env
+HEALTH_PORT=3000   # 폴링 모드 전용 — 3000이 사용 중이면 변경
+# PORT=3000        # 웹훅 모드 — 이 포트에 /health가 마운트됨
+```
+
+**Fly.io** — `fly.toml`에 HTTP 서비스 체크 추가:
+
+```toml
+[[http_service]]
+  internal_port = 3000
+  force_https = true
+
+  [[http_service.checks]]
+    interval = "30s"
+    timeout = "5s"
+    grace_period = "30s"
+    method = "GET"
+    path = "/health"
+```
+
+**Railway** — 서비스의 **Settings → Deploy**에서 헬스 체크 경로를 `/health`, 포트를 `3000`으로 설정.
+
+**Docker** — `docker ps`가 자동으로 `(healthy)` / `(unhealthy)` 상태를 표시합니다. `HEALTHCHECK`는 30초마다 `wget --spider http://localhost:${HEALTH_PORT}/health`를 실행합니다.
 
 ## 기여
 
