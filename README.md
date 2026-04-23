@@ -50,12 +50,17 @@ npm run dev
 │   ├── commands/                 # Bot commands (auto-loaded)
 │   │   ├── start.js              # /start — greeting
 │   │   └── help.js               # /help — list commands
-│   └── handlers/                 # Message handlers (auto-loaded)
-│       └── echo.js               # Echo text messages
+│   ├── handlers/                 # Message handlers (auto-loaded)
+│   │   └── echo.js               # Echo text messages
+│   └── lib/
+│       ├── health.js             # GET /health HTTP server
+│       ├── logger.js             # Structured JSON logger
+│       └── rate-limiter.js       # Per-user rate limiter
 ├── scripts/
 │   └── bump-version.js           # Bump package.json version
 ├── tests/
-│   └── commands.test.js          # Structure validation tests
+│   ├── commands.test.js          # Command + handler tests
+│   └── health.test.js            # Health endpoint tests
 ├── Dockerfile                    # Production container
 ├── docker-compose.yml            # Dev with hot reload
 ├── .github/
@@ -78,6 +83,7 @@ npm run dev
 - **CD Pipeline** — One-click deploy to Railway or Fly.io + auto GitHub Release
 - **Docker** — Production Dockerfile + dev compose with hot reload
 - **Polling & Webhook** — Long polling by default, webhook mode via env var
+- **Health endpoint** — Built-in `GET /health` + Docker `HEALTHCHECK` so Fly.io / Railway can detect a crashed bot
 - **Version management** — `npm run version:patch/minor/major` to bump `package.json`
 - **Dev mode** — `npm run dev` for live reload with `node --watch`
 - **Starter code** — `/start` + `/help` commands, echo handler, modular structure
@@ -228,6 +234,47 @@ This template uses JavaScript for simplicity. To add TypeScript:
 4. Rename `.js` files to `.ts`
 
 TypeScript is opt-in, not forced. For many bots, JavaScript is all you need.
+
+## Health Check
+
+The bot exposes a tiny HTTP health server (`src/lib/health.js`) so Docker, Fly.io, and Railway can detect a crashed or stuck bot process.
+
+| Mode | Port | Endpoint |
+|------|------|----------|
+| Polling (default) | `HEALTH_PORT` (default `3000`) — standalone server | `GET /health` |
+| Webhook (`WEBHOOK_URL` set) | `PORT` — mounted on the webhook server, no extra listener | `GET /health` |
+
+| Status | Body |
+|--------|------|
+| `200 OK` (ready) | `{ "status": "ok", "uptime": <seconds>, "mode": "polling"\|"webhook" }` |
+| `503 Service Unavailable` (starting / disconnected) | `{ "status": "starting", "uptime": <seconds>, "mode": "polling"\|"webhook" }` |
+
+**Configuration**
+
+```bash
+# .env
+HEALTH_PORT=3000   # polling mode only — change if 3000 is already taken
+# PORT=3000        # webhook mode — /health is mounted on this port
+```
+
+**Fly.io** — add an HTTP service check to `fly.toml`:
+
+```toml
+[[http_service]]
+  internal_port = 3000
+  force_https = true
+
+  [[http_service.checks]]
+    interval = "30s"
+    timeout = "5s"
+    grace_period = "30s"
+    method = "GET"
+    path = "/health"
+```
+
+**Railway** — in the service's **Settings → Deploy**, set the health-check path to `/health` and the port to `3000`.
+
+**Docker** — `docker ps` will show `(healthy)` / `(unhealthy)` automatically; the `HEALTHCHECK` runs `wget --spider http://localhost:${HEALTH_PORT}/health` every 30s.
 
 ## Contributing
 
