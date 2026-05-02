@@ -52,7 +52,12 @@ if (config.webhookUrl) {
   // Webhook mode: mount GET /health on the same HTTP server as the webhook
   // handler so the container only exposes one port. Docker HEALTHCHECK and
   // Fly.io / Railway both hit /health on `config.port`.
-  const handleWebhook = webhookCallback(bot, 'http');
+  // `secretToken` makes grammy verify the X-Telegram-Bot-Api-Secret-Token
+  // header on every incoming request. Without this, anyone who learns the
+  // webhook URL (logs, screenshots, scans) can post forged updates.
+  const handleWebhook = webhookCallback(bot, 'http', {
+    secretToken: config.webhookSecret,
+  });
   const requestHandler = createHealthHandler(bot, 'webhook', handleWebhook);
 
   webhookServer = http.createServer(requestHandler);
@@ -63,8 +68,10 @@ if (config.webhookUrl) {
     log.info('webhook', `Webhook + health server running on port ${config.port}`);
   });
 
-  bot.api.setWebhook(config.webhookUrl).then(() => {
-    log.info('webhook', `Webhook set to ${config.webhookUrl}`);
+  bot.api.setWebhook(config.webhookUrl, {
+    secret_token: config.webhookSecret,
+  }).then(() => {
+    log.info('webhook', `Webhook set to ${config.webhookUrl} (secret token enforced)`);
   }).catch((err) => {
     log.error('webhook', 'Failed to set webhook', { error: String(err) });
     process.exit(1);
