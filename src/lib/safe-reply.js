@@ -39,7 +39,16 @@ async function safeReply(ctx, text, options) {
       });
       return null;
     }
-    throw err;
+    // Non-Grammy errors used to rethrow, but the file's contract is
+    // "failing to send a demo echo shouldn't crash the bot worker."
+    // Log structurally and drop. If grammy ever changes its error
+    // hierarchy, this prevents an unhandled rejection from killing the
+    // event loop.
+    log.error('safe-reply', 'unexpected error', {
+      error: String(err),
+      name: err?.name,
+    });
+    return null;
   }
 }
 
