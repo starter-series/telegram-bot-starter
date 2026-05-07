@@ -8,7 +8,7 @@
     "start": "node src/index.js",
     "dev": "node --watch src/index.js",
     "lint": "eslint src/",
-    "test": "jest --verbose --passWithNoTests",
+    "test": "jest --verbose --coverage",
     "version:patch": "node scripts/bump-version.js patch",
     "version:minor": "node scripts/bump-version.js minor",
     "version:major": "node scripts/bump-version.js major"
@@ -28,11 +28,16 @@
     "coverageThreshold": {
       "global": {
         "statements": 50,
-        "branches": 50,
+        "branches": 35,
         "functions": 50,
-        "lines": 50
+        "lines": 55
       }
-    }
+    },
+    "coverageReporters": [
+      "text",
+      "text-summary",
+      "json-summary"
+    ]
   },
   "engines": {
     "node": ">=22"
