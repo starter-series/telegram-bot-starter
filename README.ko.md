@@ -184,6 +184,61 @@ module.exports = {
 
 커맨드는 자동 로드됩니다 — 다른 파일 수정 불필요.
 
+## 핸들러 추가
+
+`src/handlers/`에 새 파일 작성:
+
+```js
+// src/handlers/photo.js
+module.exports = {
+  name: 'photo',
+  register(bot) {
+    bot.on('message:photo', async (ctx) => {
+      await ctx.reply('Nice photo!');
+    });
+  },
+};
+```
+
+핸들러도 자동 로드됩니다 — 다른 파일 수정 불필요.
+
+## 왜 무거운 템플릿 대신 이걸 쓰나요?
+
+[donbarbos/telegram-bot-template](https://github.com/donbarbos/telegram-bot-template) (450+ stars)이 가장 완성도 높은 Telegram 봇 템플릿입니다. 이 템플릿은 다른 접근법:
+
+|  | 이 템플릿 | donbarbos/telegram-bot-template |
+|---|---|---|
+| 철학 | CI/CD 갖춘 얇은 starter | 풀 프로덕션 스택 |
+| 프레임워크 | grammY (JS) | aiogram (Python) |
+| 인프라 | Docker만 | Docker + PostgreSQL + Redis + Grafana |
+| 의존성 | 런타임 2개 | 15+ |
+| 러닝커브 | grammY 문서만 보면 됨 | 풀 스택 학습 필요 |
+| CI/CD | 풀 파이프라인 제공 | 풀 파이프라인 제공 |
+| AI/vibe-coding | LLM이 깔끔한 JS 생성 | LLM이 Python + ORM + 모니터링 모두 처리 필요 |
+| 적합 사례 | 유틸리티 봇, 간단한 자동화 | DB·캐싱·모니터링 갖춘 대형 봇 |
+
+**이 템플릿을 선택할 때:**
+- 이해·확장하기 쉬운 가벼운 봇이 필요
+- 무거운 스택 없이 프로덕션 CI/CD + Docker만 필요
+- AI 도구로 봇 코드 생성 — 간단한 JS가 가장 깔끔한 출력
+- 봇이 DB나 Redis가 필요 없는 경우
+
+**donbarbos를 선택할 때:**
+- 첫날부터 PostgreSQL, Redis, 모니터링이 필요
+- JavaScript/grammY보다 Python/aiogram 선호
+- 풀 프로덕션 스택을 즉시 원함
+
+### TypeScript는?
+
+이 템플릿은 단순함을 위해 JavaScript 사용. TypeScript 추가하려면:
+
+1. `typescript`와 `@types/node`를 devDependencies에 추가
+2. `tsconfig.json` 추가
+3. `npm start`를 build 후 `dist/`에서 실행하도록 수정
+4. `.js` 파일을 `.ts`로 리네임
+
+TypeScript는 강제가 아닌 opt-in. 많은 봇에는 JavaScript로 충분.
+
 ## 헬스 체크
 
 봇은 작은 HTTP 헬스 서버(`src/lib/health.js`)를 엽니다. Docker, Fly.io, Railway가 봇 프로세스 크래시/연결 끊김을 감지하는 용도입니다.
