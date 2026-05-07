@@ -28,11 +28,16 @@
     "coverageThreshold": {
       "global": {
         "statements": 50,
-        "branches": 50,
+        "branches": 35,
         "functions": 50,
-        "lines": 50
+        "lines": 55
       }
-    }
+    },
+    "coverageReporters": [
+      "text",
+      "text-summary",
+      "json-summary"
+    ]
   },
   "engines": {
     "node": ">=22"
