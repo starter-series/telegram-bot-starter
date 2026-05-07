@@ -18,9 +18,9 @@ jobs:
         run: |
           NAME=$(node -p "require('./package.json').name")
           if [ "$NAME" = "telegram-bot-starter" ]; then
-            echo "is_template=true" >> $GITHUB_OUTPUT
+            echo "is_template=true" >> "$GITHUB_OUTPUT"
           else
-            echo "is_template=false" >> $GITHUB_OUTPUT
+            echo "is_template=false" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Check if setup issue exists
@@ -28,7 +28,7 @@ jobs:
         if: steps.check.outputs.is_template == 'true'
         run: |
           COUNT=$(gh issue list --search "Setup Checklist" --state all --json number --jq 'length')
-          echo "exists=$([ "$COUNT" -gt 0 ] && echo true || echo false)" >> $GITHUB_OUTPUT
+          echo "exists=$([ "$COUNT" -gt 0 ] && echo true || echo false)" >> "$GITHUB_OUTPUT"
         env:
           GH_TOKEN: ${{ github.token }}
 
