@@ -59,12 +59,14 @@ See [docs/TELEGRAM_SETUP.md](docs/TELEGRAM_SETUP.md) for the detailed BotFather 
 │   └── lib/
 │       ├── health.js             # GET /health HTTP server
 │       ├── logger.js             # Structured JSON logger
-│       └── rate-limiter.js       # Per-user rate limiter
+│       ├── rate-limiter.js       # Per-user rate limiter
+│       └── safe-reply.js         # Non-throwing reply wrapper (handles Telegram 429 Retry-After)
 ├── scripts/
 │   └── bump-version.js           # Bump package.json version
 ├── tests/
 │   ├── commands.test.js          # Command + handler tests
-│   └── health.test.js            # Health endpoint tests
+│   ├── health.test.js            # Health endpoint tests
+│   └── safe-reply.test.js        # safe-reply 429-retry behavioral tests
 ├── Dockerfile                    # Production container
 ├── docker-compose.yml            # Dev with hot reload
 ├── .github/
@@ -91,8 +93,10 @@ See [docs/TELEGRAM_SETUP.md](docs/TELEGRAM_SETUP.md) for the detailed BotFather 
 - **Version management** — `npm run version:patch/minor/major` to bump `package.json`
 - **Dev mode** — `npm run dev` for live reload with `node --watch`
 - **Starter code** — `/start` + `/help` commands, echo handler, modular structure
+- **Safe reply** — `safe-reply.js` swallows reply errors and obeys Telegram's `429 Retry-After` so a single rate-limited send never crashes the bot loop
 - **Deploy guides** — Step-by-step docs for BotFather, Railway, and Fly.io
 - **Template setup** — Auto-creates setup checklist issue on first use
+- **Supply-chain hardening** — `npm ci --ignore-scripts` in CI, committed lockfile, gitleaks pinned by sha256, Railway CLI pinned by version
 
 ## CI/CD
 
@@ -279,6 +283,35 @@ HEALTH_PORT=3000   # polling mode only — change if 3000 is already taken
 **Railway** — in the service's **Settings → Deploy**, set the health-check path to `/health` and the port to `3000`.
 
 **Docker** — `docker ps` will show `(healthy)` / `(unhealthy)` automatically; the `HEALTHCHECK` runs `wget --spider http://localhost:${HEALTH_PORT}/health` every 30s.
+
+## Scope
+
+**Currently implemented**
+- grammY bot with polling (default) and webhook modes, `/start` + `/help` commands, echo handler — all auto-loaded from `src/commands/` and `src/handlers/`.
+- `src/lib/safe-reply.js` — non-throwing reply wrapper that respects Telegram's `429 Retry-After` (100% line coverage).
+- `src/lib/rate-limiter.js`, `src/lib/health.js`, `src/lib/logger.js`.
+- CI: `npm audit`, ESLint, Jest with `--coverage`, Docker build, Trivy CVE scan, CodeQL (weekly), gitleaks (sha256-pinned).
+- CD: Railway and Fly.io workflows with a version-tag guard and auto-generated GitHub Releases.
+- Test suite: 20 tests across `commands`, `health`, `safe-reply` (see `npm test` output).
+
+**Planned**
+- None. A starter is finished when it ships; further features go into downstream projects, not here.
+
+**Design intent**
+- Two runtime dependencies (`grammy`, `dotenv`) and plain JavaScript — so an LLM extending this repo doesn't have to reason about an ORM, a build step, or a type system to add a command.
+- `safe-reply` is non-throwing on purpose: a single rate-limited reply must never crash the polling loop or webhook handler. Errors are logged via the structured logger, not propagated.
+- Auto-loading via `src/commands/index.js` and `src/handlers/index.js`: drop a file in, the bot picks it up — no central registry to edit, fewer merge conflicts for AI-generated PRs.
+- `--ignore-scripts` in CI: lifecycle scripts are a known supply-chain attack surface; the starter opts out by default.
+- Health endpoint piggybacks on the webhook server when `WEBHOOK_URL` is set — one listener, not two.
+
+**Non-goals**
+- TypeScript (opt-in path documented above; not the default).
+- Database, ORM, Redis, Grafana, payments, sessions/FSM, i18n — use [donbarbos/telegram-bot-template](https://github.com/donbarbos/telegram-bot-template) instead (see comparison table above).
+- Wrapping the full Telegram Bot API surface — this starter exposes grammY directly.
+- A plugin marketplace or theme system; a starter is meant to be forked, not extended.
+
+**Redacted**
+- None. This is a public starter; there are no internal references, customers, or accounts to redact.
 
 ## Contributing
 
