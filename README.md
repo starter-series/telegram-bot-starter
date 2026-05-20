@@ -8,7 +8,8 @@ Build your bot. Push to deploy.
 
 [![CI](https://github.com/starter-series/telegram-bot-starter/actions/workflows/ci.yml/badge.svg)](https://github.com/starter-series/telegram-bot-starter/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
-[![grammY](https://img.shields.io/badge/grammY-v1-009dca.svg)](https://grammy.dev)
+[![grammY](https://img.shields.io/github/package-json/dependency-version/starter-series/telegram-bot-starter/grammy?label=grammY&color=009dca)](https://grammy.dev)
+[![Node](https://img.shields.io/badge/Node-22%20LTS-339933.svg?logo=node.js&logoColor=white)](https://nodejs.org/)
 [![Docker](https://img.shields.io/badge/Docker-ready-2496ED.svg)](https://www.docker.com/)
 
 **English** | [한국어](README.ko.md)
@@ -205,6 +206,8 @@ module.exports = {
 ```
 
 Handlers are auto-loaded — no need to edit any other file.
+
+> **Security note** — `safeReply(ctx, text)` defaults to plain text, which is safe to echo. If you switch to `safeReply(ctx, text, { parse_mode: 'HTML' })` or `'MarkdownV2'`, escape user input first or an attacker who controls bot input can forge fake links / fake buttons. See [grammY formatting docs](https://grammy.dev/guide/formatting).
 
 ## Why This Over Heavyweight Templates?
 

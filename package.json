@@ -15,7 +15,7 @@
   },
   "dependencies": {
     "dotenv": "^17.4.2",
-    "grammy": "^1.42.0"
+    "grammy": "^1.43.0"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
@@ -27,10 +27,10 @@
   "jest": {
     "coverageThreshold": {
       "global": {
-        "statements": 50,
-        "branches": 35,
-        "functions": 50,
-        "lines": 55
+        "statements": 65,
+        "branches": 45,
+        "functions": 65,
+        "lines": 65
       }
     },
     "coverageReporters": [
