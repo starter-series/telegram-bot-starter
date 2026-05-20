@@ -56,10 +56,14 @@ process.on('SIGTERM', () => shutdown('SIGTERM'));
 // aggregator captures the cause instead of just an empty exit code.
 process.on('uncaughtException', (err) => {
   log.error('process', 'uncaughtException', { error: String(err), stack: err?.stack });
+  // Bound the shutdown path: if the runtime is corrupted, `bot.stop()` can
+  // hang and the container would never exit. Force-kill after 5s so the
+  // orchestrator (Docker / Fly / Railway) can restart us.
+  setTimeout(() => process.exit(1), 5000).unref();
   shutdown('uncaughtException');
 });
 process.on('unhandledRejection', (reason) => {
-  log.error('process', 'unhandledRejection', { reason: String(reason) });
+  log.error('process', 'unhandledRejection', { reason: String(reason), stack: reason?.stack });
   // Do not shutdown — Node will eventually surface as uncaughtException if
   // the rejection is truly fatal. Logging is enough to find the bug.
 });
