@@ -6,10 +6,20 @@ updates:
       interval: weekly
     open-pull-requests-limit: 10
     groups:
+      # Patch + minor: safe to merge in batch.
       lint:
         patterns: ["eslint", "@eslint/*", "globals"]
+        update-types: ["minor", "patch"]
       test:
         patterns: ["jest", "@jest/*"]
+        update-types: ["minor", "patch"]
+      # Majors: separate PRs per group so each gets its own review.
+      lint-major:
+        patterns: ["eslint", "@eslint/*", "globals"]
+        update-types: ["major"]
+      test-major:
+        patterns: ["jest", "@jest/*"]
+        update-types: ["major"]
 
   - package-ecosystem: github-actions
     directory: /
@@ -19,3 +29,7 @@ updates:
     groups:
       actions:
         patterns: ["*"]
+        update-types: ["minor", "patch"]
+      actions-major:
+        patterns: ["*"]
+        update-types: ["major"]

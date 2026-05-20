@@ -8,7 +8,8 @@
 
 [![CI](https://github.com/starter-series/telegram-bot-starter/actions/workflows/ci.yml/badge.svg)](https://github.com/starter-series/telegram-bot-starter/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
-[![grammY](https://img.shields.io/badge/grammY-v1-009dca.svg)](https://grammy.dev)
+[![grammY](https://img.shields.io/github/package-json/dependency-version/starter-series/telegram-bot-starter/grammy?label=grammY&color=009dca)](https://grammy.dev)
+[![Node](https://img.shields.io/badge/Node-22%20LTS-339933.svg?logo=node.js&logoColor=white)](https://nodejs.org/)
 [![Docker](https://img.shields.io/badge/Docker-ready-2496ED.svg)](https://www.docker.com/)
 
 [English](README.md) | **한국어**
@@ -205,6 +206,8 @@ module.exports = {
 ```
 
 핸들러도 자동 로드됩니다 — 다른 파일 수정 불필요.
+
+> **보안 노트** — `safeReply(ctx, text)` 기본값은 plain text라 사용자 입력을 그대로 echo해도 안전합니다. `safeReply(ctx, text, { parse_mode: 'HTML' })` 또는 `'MarkdownV2'`로 바꾸려면 **사용자 입력을 먼저 escape**해야 합니다. 그렇지 않으면 봇 입력을 통제하는 공격자가 가짜 링크·가짜 버튼·가짜 시스템 메시지를 위조할 수 있습니다. [grammY formatting 가이드](https://grammy.dev/guide/formatting) 참고.
 
 ## 왜 무거운 템플릿 대신 이걸 쓰나요?
 

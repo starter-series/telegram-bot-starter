@@ -48,6 +48,22 @@ const shutdown = async (signal) => {
 process.on('SIGINT', () => shutdown('SIGINT'));
 process.on('SIGTERM', () => shutdown('SIGTERM'));
 
+// Last-resort guards: `bot.catch()` covers grammy middleware errors, but
+// anything thrown outside the bot's execution context (a stray async timer,
+// the health server, the shutdown path itself) would otherwise terminate the
+// process without a structured log line. Log + graceful shutdown so the
+// readiness probe flips to 503 before the container exits, and so the log
+// aggregator captures the cause instead of just an empty exit code.
+process.on('uncaughtException', (err) => {
+  log.error('process', 'uncaughtException', { error: String(err), stack: err?.stack });
+  shutdown('uncaughtException');
+});
+process.on('unhandledRejection', (reason) => {
+  log.error('process', 'unhandledRejection', { reason: String(reason) });
+  // Do not shutdown — Node will eventually surface as uncaughtException if
+  // the rejection is truly fatal. Logging is enough to find the bug.
+});
+
 if (config.webhookUrl) {
   // Webhook mode: mount GET /health on the same HTTP server as the webhook
   // handler so the container only exposes one port. Docker HEALTHCHECK and
