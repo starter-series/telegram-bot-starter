@@ -29,9 +29,9 @@ This template includes automated security checks in CI:
 ## Logged data
 
 This starter writes JSON log lines (`src/lib/logger.js`) to stdout. The default
-echo handler logs the Telegram numeric `user.id` when a message is rate-limited
-(`src/handlers/echo.js`), and the bot logs its own lifecycle events. **It does
-not log message text or chat IDs.**
+echo handler logs the Telegram numeric user id (as the field `userId`) when a
+message is rate-limited (`src/handlers/echo.js`), and the bot logs its own
+lifecycle events. **It does not log message text or chat IDs.**
 
 Telegram `user.id` is a pseudonymous identifier under GDPR/CCPA. If you ship
 this starter to production, decide on:
