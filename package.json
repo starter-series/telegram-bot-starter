@@ -25,6 +25,10 @@
     "license-checker": "^25.0.1"
   },
   "jest": {
+    "collectCoverageFrom": [
+      "src/**/*.js",
+      "!src/index.js"
+    ],
     "coverageThreshold": {
       "global": {
         "statements": 65,

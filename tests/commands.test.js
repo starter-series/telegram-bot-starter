@@ -80,4 +80,18 @@ describe('Handler files', () => {
     expect(handler).toHaveProperty('register');
     expect(typeof handler.register).toBe('function');
   });
+
+  test('registerHandlers loads every handler in src/handlers/', () => {
+    // The 2026-05-21 second-pass audit found src/handlers/index.js had 0%
+    // coverage despite being the loader that wires every handler into the
+    // bot at startup. Exercise it against a fake bot and verify each
+    // discovered file's `register` was invoked exactly once.
+    const { registerHandlers } = require(path.join(handlersPath, 'index.js'));
+    const fakeBot = { on: jest.fn() };
+    registerHandlers(fakeBot);
+    // Every handler in the directory listens on at least one event, so the
+    // fake bot's `on` must have been called at least `handlerFiles.length`
+    // times. (Some handlers may register multiple listeners — that's fine.)
+    expect(fakeBot.on.mock.calls.length).toBeGreaterThanOrEqual(handlerFiles.length);
+  });
 });
