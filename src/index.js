@@ -105,7 +105,15 @@ if (config.webhookUrl) {
     log.error('health', 'Failed to start health server', { error: String(err) });
   });
 
+  // `bot.start()` returns a Promise that resolves when polling stops. We
+  // intentionally don't await it (the call runs the long-poll loop), but we
+  // must `.catch` so a startup failure (bad token, network down) surfaces as
+  // a structured log + exit instead of leaking via unhandledRejection. Mirror
+  // the `healthServer.start().catch(...)` shape above.
   bot.start({
     onStart: () => log.info('polling', 'Bot started with long polling'),
+  }).catch((err) => {
+    log.error('polling', 'Failed to start polling', { error: String(err), stack: err?.stack });
+    process.exit(1);
   });
 }
