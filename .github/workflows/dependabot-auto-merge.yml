@@ -32,3 +32,17 @@ jobs:
         env:
           PR_URL: ${{ github.event.pull_request.html_url }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # fetch-metadata returns an empty `update-type` for PRs that aren't a
+      # semver bump — security advisories, lockfile-only updates, brand-new
+      # dependency additions. Without this fallback those PRs would be
+      # neither auto-merged nor labeled, silently sitting in the queue.
+      - name: Label non-version updates for manual review
+        if: |
+          steps.meta.outputs.update-type != 'version-update:semver-patch' &&
+          steps.meta.outputs.update-type != 'version-update:semver-minor' &&
+          steps.meta.outputs.update-type != 'version-update:semver-major'
+        run: gh pr edit "$PR_URL" --add-label "dependencies,manual-review"
+        env:
+          PR_URL: ${{ github.event.pull_request.html_url }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

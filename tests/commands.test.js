@@ -81,17 +81,30 @@ describe('Handler files', () => {
     expect(typeof handler.register).toBe('function');
   });
 
-  test('registerHandlers loads every handler in src/handlers/', () => {
+  test('registerHandlers invokes each handler module\'s register exactly once', () => {
     // The 2026-05-21 second-pass audit found src/handlers/index.js had 0%
     // coverage despite being the loader that wires every handler into the
-    // bot at startup. Exercise it against a fake bot and verify each
-    // discovered file's `register` was invoked exactly once.
-    const { registerHandlers } = require(path.join(handlersPath, 'index.js'));
-    const fakeBot = { on: jest.fn() };
-    registerHandlers(fakeBot);
-    // Every handler in the directory listens on at least one event, so the
-    // fake bot's `on` must have been called at least `handlerFiles.length`
-    // times. (Some handlers may register multiple listeners — that's fine.)
-    expect(fakeBot.on.mock.calls.length).toBeGreaterThanOrEqual(handlerFiles.length);
+    // bot at startup.
+    //
+    // The earlier version of this test asserted only that the fake bot's
+    // `on` was called at least N times. That is satisfied even when one
+    // handler defensively registers two listeners while another's
+    // `register()` is empty — the broken handler hides behind the count.
+    // Spy on each module's `register` so a no-op handler fails loudly.
+    const handlerModules = handlerFiles.map((file) => require(path.join(handlersPath, file)));
+    const spies = handlerModules.map((m) => jest.spyOn(m, 'register'));
+
+    try {
+      const { registerHandlers } = require(path.join(handlersPath, 'index.js'));
+      const fakeBot = { on: jest.fn() };
+      registerHandlers(fakeBot);
+
+      for (const spy of spies) {
+        expect(spy).toHaveBeenCalledTimes(1);
+        expect(spy).toHaveBeenCalledWith(fakeBot);
+      }
+    } finally {
+      for (const spy of spies) spy.mockRestore();
+    }
   });
 });
