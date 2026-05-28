@@ -1,13 +1,27 @@
 // Exercise the registered `message:text` handler instead of the module's
 // export shape. The 2026-05-21 second-pass audit found this surface had 0%
 // function coverage despite being the entire user-facing bot behavior.
+//
+// The echo handler holds a module-level `limiter` (see src/handlers/echo.js).
+// To give every test a fresh limiter we `jest.resetModules()` in `beforeEach`
+// and re-`require` echo.js so the closed-over `createRateLimiter` instance is
+// rebuilt. Without this each test would inherit count state from prior tests
+// in this file — today the tests use disjoint user ids by accident, but a
+// future contributor reusing an id would hit a confusing rate-limit failure
+// that the original comment ("each test gets its own listener so the
+// in-handler limiter is fresh") flatly lied about.
 
-const echo = require('../src/handlers/echo');
+let echo;
+
+beforeEach(() => {
+  jest.resetModules();
+  echo = require('../src/handlers/echo');
+});
 
 /**
  * Capture the listener that echo.register installs on `bot.on('message:text', ...)`.
- * Returns an `invoke(ctx)` callable that runs the same code path Telegram
- * traffic would.
+ * Returns the listener callable directly so tests run the same code path
+ * Telegram traffic would.
  */
 function loadEchoListener() {
   let listener;
@@ -23,9 +37,9 @@ function loadEchoListener() {
 }
 
 // `from` is built from the caller's options object so we can distinguish
-// "default user 42" from "no user at all" (channel post). Destructuring with
-// `from = X` collapses explicit-undefined into the default, hiding the case;
-// `'from' in opts` does not.
+// "default user 42" from "no user at all" (anonymous group admin). Destructuring
+// with `from = X` collapses explicit-undefined into the default, hiding the
+// case; `'from' in opts` does not.
 function makeCtx(opts = {}) {
   const text = opts.text ?? 'hello';
   const isCommand = opts.isCommand ?? false;
@@ -46,10 +60,11 @@ describe('echo handler', () => {
     const ctx = makeCtx({ text: 'ping', from: { id: 1 } });
     await listener(ctx);
     expect(ctx.reply).toHaveBeenCalledTimes(1);
-    // safeReply forwards an `options` arg (undefined here) to ctx.reply.
-    const [text, options] = ctx.reply.mock.calls[0];
+    // Only assert the echoed text — `options` is forwarded by safeReply and
+    // would change shape if a future commit adds defensive defaults; that's
+    // not a contract this handler owns.
+    const [text] = ctx.reply.mock.calls[0];
     expect(text).toBe('ping');
-    expect(options).toBeUndefined();
   });
 
   test('skips empty / whitespace-only text without replying', async () => {
@@ -68,9 +83,13 @@ describe('echo handler', () => {
     expect(ctx.reply).not.toHaveBeenCalled();
   });
 
-  test('ignores channel posts (no `from` field)', async () => {
+  // grammY's `message:text` handler CAN fire with `ctx.from === undefined`
+  // when an anonymous group admin posts as the chat itself (their identity
+  // is in `ctx.senderChat`, not `ctx.from`). The handler must not throw or
+  // burn a rate-limit slot for an id that isn't there.
+  test('ignores messages with no `from` field (anonymous-admin shape)', async () => {
     const listener = loadEchoListener();
-    const ctx = makeCtx({ text: 'from a channel', from: undefined });
+    const ctx = makeCtx({ text: 'from an anonymous admin', from: undefined });
     await listener(ctx);
     expect(ctx.reply).not.toHaveBeenCalled();
   });
@@ -82,11 +101,15 @@ describe('echo handler', () => {
     await listener(ctx);
     expect(ctx.reply).toHaveBeenCalledTimes(1);
     const [reply] = ctx.reply.mock.calls[0];
-    expect(reply.length).toBe(4096);
+    // Verify content too, not just length — otherwise a refactor that
+    // truncates to 4093 + appends '...' (also 4096 chars) would pass while
+    // corrupting the last three chars of legitimate output.
+    expect(reply).toBe('a'.repeat(4096));
   });
 
   test('rate-limits a single user after 10 messages / minute and does not reply', async () => {
-    // Each test gets its own listener so the in-handler limiter is fresh.
+    // `beforeEach` reset modules so the in-handler limiter is genuinely fresh
+    // for this test — see the file-level comment.
     const listener = loadEchoListener();
     const from = { id: 5 };
     for (let i = 0; i < 10; i += 1) {

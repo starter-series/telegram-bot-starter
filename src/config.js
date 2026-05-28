@@ -19,9 +19,15 @@ if (webhookUrl && !webhookSecret) {
   process.exit(1);
 }
 
+// PORT=0 is a valid "OS-assign an ephemeral port" request used by tests and
+// some PaaS environments, so we cannot use `|| 3000` (that would silently
+// override 0 → 3000). Accept any non-negative integer, fall back otherwise.
+const parsedPort = Number.parseInt(process.env.PORT, 10);
+const port = Number.isInteger(parsedPort) && parsedPort >= 0 ? parsedPort : 3000;
+
 module.exports = {
   botToken: process.env.BOT_TOKEN,
   webhookUrl,
   webhookSecret,
-  port: parseInt(process.env.PORT, 10) || 3000,
+  port,
 };

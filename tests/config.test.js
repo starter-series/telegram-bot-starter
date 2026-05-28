@@ -2,6 +2,14 @@
 // with process.exit(1) on bad config; spy on exit so the test runner survives,
 // and clear the require cache between tests so each load re-evaluates the
 // module's top-level checks.
+//
+// `dotenv` is mocked at module scope so this suite is hermetic — a developer
+// who follows the README quick-start (`cp .env.example .env`, fill in BOT_TOKEN)
+// would otherwise see `dotenv.config()` repopulate BOT_TOKEN/PORT from disk
+// between our `delete process.env[k]` step and the require, breaking the
+// "exits when BOT_TOKEN is missing" and PORT-default tests locally even
+// though CI (no .env on disk) passes.
+jest.mock('dotenv', () => ({ config: () => ({ parsed: {} }) }));
 
 function loadConfig(env) {
   // jest has its own module registry — `delete require.cache[...]` is a no-op
@@ -71,9 +79,28 @@ describe('config', () => {
     expect(exitSpy).not.toHaveBeenCalled();
   });
 
-  test('parses PORT as an integer with default 3000', () => {
-    expect(loadConfig({ BOT_TOKEN: 'x', PORT: '8080' }).port).toBe(8080);
-    expect(loadConfig({ BOT_TOKEN: 'x', PORT: 'not-a-number' }).port).toBe(3000);
-    expect(loadConfig({ BOT_TOKEN: 'x' }).port).toBe(3000);
+  describe('PORT parsing', () => {
+    test('numeric string is parsed as an integer', () => {
+      expect(loadConfig({ BOT_TOKEN: 'x', PORT: '8080' }).port).toBe(8080);
+    });
+
+    test('non-numeric string falls back to default 3000', () => {
+      expect(loadConfig({ BOT_TOKEN: 'x', PORT: 'not-a-number' }).port).toBe(3000);
+    });
+
+    test('absent PORT falls back to default 3000', () => {
+      expect(loadConfig({ BOT_TOKEN: 'x' }).port).toBe(3000);
+    });
+
+    test('PORT=0 is accepted (ephemeral-port request), NOT silently overridden by 3000', () => {
+      // Common in test harnesses and some PaaS configurations: PORT=0 asks
+      // the OS to assign an ephemeral free port. The previous
+      // `parseInt(PORT, 10) || 3000` collapsed 0 → 3000, silently overriding.
+      expect(loadConfig({ BOT_TOKEN: 'x', PORT: '0' }).port).toBe(0);
+    });
+
+    test('negative PORT falls back to default 3000', () => {
+      expect(loadConfig({ BOT_TOKEN: 'x', PORT: '-1' }).port).toBe(3000);
+    });
   });
 });

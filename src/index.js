@@ -5,6 +5,7 @@ const { registerCommands } = require('./commands');
 const { registerHandlers } = require('./handlers');
 const { createHealthServer, createHealthHandler } = require('./lib/health');
 const log = require('./lib/logger');
+const { buildStartupErrorHandler } = require('./lib/startup-errors');
 
 const bot = new Bot(config.botToken);
 
@@ -22,10 +23,10 @@ let webhookServer;
 let healthServer;
 
 let shuttingDown = false;
-const shutdown = async (signal) => {
+const shutdown = async (signal, exitCode = 0) => {
   if (shuttingDown) return;
   shuttingDown = true;
-  log.info('lifecycle', 'Shutting down...', { signal });
+  log.info('lifecycle', 'Shutting down...', { signal, exitCode });
   try {
     if (healthServer) await healthServer.stop();
   } catch (err) {
@@ -43,7 +44,7 @@ const shutdown = async (signal) => {
   } catch (err) {
     log.error('lifecycle', 'Error stopping bot', { error: String(err) });
   }
-  process.exit(0);
+  process.exit(exitCode);
 };
 process.on('SIGINT', () => shutdown('SIGINT'));
 process.on('SIGTERM', () => shutdown('SIGTERM'));
@@ -60,7 +61,7 @@ process.on('uncaughtException', (err) => {
   // hang and the container would never exit. Force-kill after 5s so the
   // orchestrator (Docker / Fly / Railway) can restart us.
   setTimeout(() => process.exit(1), 5000).unref();
-  shutdown('uncaughtException');
+  shutdown('uncaughtException', 1);
 });
 process.on('unhandledRejection', (reason) => {
   log.error('process', 'unhandledRejection', { reason: String(reason), stack: reason?.stack });
@@ -92,10 +93,7 @@ if (config.webhookUrl) {
     secret_token: config.webhookSecret,
   }).then(() => {
     log.info('webhook', `Webhook set to ${config.webhookUrl} (secret token enforced)`);
-  }).catch((err) => {
-    log.error('webhook', 'Failed to set webhook', { error: String(err) });
-    process.exit(1);
-  });
+  }).catch(buildStartupErrorHandler('webhook', shutdown));
 } else {
   // Polling mode: standalone health server on HEALTH_PORT. We start it in
   // parallel with bot.start() — readiness flips to 200 as soon as
@@ -107,13 +105,10 @@ if (config.webhookUrl) {
 
   // `bot.start()` returns a Promise that resolves when polling stops. We
   // intentionally don't await it (the call runs the long-poll loop), but we
-  // must `.catch` so a startup failure (bad token, network down) surfaces as
-  // a structured log + exit instead of leaking via unhandledRejection. Mirror
-  // the `healthServer.start().catch(...)` shape above.
+  // must `.catch` so a startup failure (bad token, network down) routes
+  // through `shutdown()` instead of leaking via unhandledRejection or
+  // tearing the health server mid-write with a bare `process.exit(1)`.
   bot.start({
     onStart: () => log.info('polling', 'Bot started with long polling'),
-  }).catch((err) => {
-    log.error('polling', 'Failed to start polling', { error: String(err), stack: err?.stack });
-    process.exit(1);
-  });
+  }).catch(buildStartupErrorHandler('polling', shutdown));
 }
