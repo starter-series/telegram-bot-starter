@@ -106,6 +106,20 @@ describe('/help command', () => {
       expect(text).toContain(cmd.description);
     }
   });
+
+  test('swallows reply errors so the bot process keeps running', async () => {
+    // Mirror of the /start swallow test: help.execute wraps ctx.reply in
+    // try/catch (src/commands/help.js line 14) so a transient send failure
+    // logs instead of rejecting up into grammy and crashing the worker.
+    // help reads the shared `commands` list, so populate it first.
+    const { registerCommands, commands } = require(path.join(commandsPath, 'index.js'));
+    commands.length = 0;
+    registerCommands({ command: jest.fn() });
+
+    const ctx = { reply: jest.fn().mockRejectedValue(new Error('boom')) };
+    await expect(help.execute(ctx)).resolves.toBeUndefined();
+    expect(ctx.reply).toHaveBeenCalledTimes(1);
+  });
 });
 
 describe('Handler files', () => {

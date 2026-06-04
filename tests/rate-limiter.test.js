@@ -143,4 +143,63 @@ describe('createRateLimiter', () => {
     }
     expect(limiter.check('u1').limited).toBe(true);
   });
+
+  test('the background setInterval evicts stale entries once a window elapses', () => {
+    // This exercises the AUTOMATIC cleanup path (the `setInterval` callback in
+    // src/lib/rate-limiter.js lines 19-24), which is distinct from the manual
+    // `cleanup()` method tested above and was previously 0% covered. With real
+    // timers the interval is `.unref()`'d and would never fire inside a test, so
+    // drive it with fake timers + a mocked clock.
+    jest.useFakeTimers();
+    const now0 = 1_700_000_000_000;
+    const dateSpy = jest.spyOn(Date, 'now').mockReturnValue(now0);
+    // Own the limiter's lifecycle here (do NOT register with makeLimiter) so we
+    // dispose it before restoring real timers.
+    const limiter = createRateLimiter(3, 60_000);
+
+    try {
+      limiter.check('u1'); // entry created at now0
+      limiter.check('u2');
+      expect(limiter._size()).toBe(2);
+
+      // Advance the WALL CLOCK past the window so both entries are stale, then
+      // let exactly one interval tick fire. The eviction must happen WITHOUT any
+      // call to check()/cleanup() — purely the background interval.
+      dateSpy.mockReturnValue(now0 + 60_001);
+      jest.advanceTimersByTime(60_000); // fires the setInterval callback once
+
+      expect(limiter._size()).toBe(0);
+    } finally {
+      limiter.dispose();
+      dateSpy.mockRestore();
+      jest.useRealTimers();
+    }
+  });
+
+  test('the background interval keeps entries that are still inside the window', () => {
+    // Guards the eviction predicate: a tick that fires while entries are fresh
+    // must NOT drop them (a `> ` vs `>=`/sign regression in the interval body
+    // would wrongly evict live users). Without this, the eviction test above
+    // would still pass against a callback that blindly clears the whole store.
+    jest.useFakeTimers();
+    const now0 = 1_700_000_000_000;
+    const dateSpy = jest.spyOn(Date, 'now').mockReturnValue(now0);
+    const limiter = createRateLimiter(3, 60_000);
+
+    try {
+      limiter.check('u1');
+      expect(limiter._size()).toBe(1);
+
+      // Interval fires at t=60s, but only 30s of logical time has passed for the
+      // entry (start=now0, now=now0+30s) — still inside the window, keep it.
+      dateSpy.mockReturnValue(now0 + 30_000);
+      jest.advanceTimersByTime(60_000);
+
+      expect(limiter._size()).toBe(1);
+    } finally {
+      limiter.dispose();
+      dateSpy.mockRestore();
+      jest.useRealTimers();
+    }
+  });
 });
