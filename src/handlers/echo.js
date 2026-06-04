@@ -4,6 +4,30 @@ const { safeReply } = require('../lib/safe-reply');
 
 const MAX_LENGTH = 4096;
 
+/**
+ * Truncate `text` to at most `max` UTF-16 code units without splitting a
+ * surrogate pair. Telegram's 4096 limit is measured in code units, so we slice
+ * by code units (not code points — `Array.from().slice(max)` can overshoot to
+ * 2*max units for an all-emoji string and exceed the API limit). If the cut
+ * lands between the high and low half of a surrogate pair, the trailing lone
+ * high surrogate (U+D800–U+DBFF) is a malformed half-character; drop it so the
+ * echoed text stays valid UTF-16 (a lone surrogate renders as U+FFFD).
+ *
+ * @param {string} text
+ * @param {number} max - maximum UTF-16 code units.
+ * @returns {string}
+ */
+function truncate(text, max) {
+  if (text.length <= max) return text;
+  let cut = text.slice(0, max);
+  const lastCode = cut.charCodeAt(cut.length - 1);
+  if (lastCode >= 0xd800 && lastCode <= 0xdbff) {
+    // High surrogate at the tail: its low half was sliced off. Drop the orphan.
+    cut = cut.slice(0, -1);
+  }
+  return cut;
+}
+
 // Per-user limiter. In-memory, so multi-process / multi-shard deploys lose
 // state on restart and don't share counts across instances. For accurate
 // limits in those topologies, swap the store for Redis.
@@ -28,8 +52,7 @@ module.exports = {
         return;
       }
 
-      const reply = text.length > MAX_LENGTH ? text.slice(0, MAX_LENGTH) : text;
-      await safeReply(ctx, reply);
+      await safeReply(ctx, truncate(text, MAX_LENGTH));
     });
   },
 };

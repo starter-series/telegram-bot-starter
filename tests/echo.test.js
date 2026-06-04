@@ -107,6 +107,48 @@ describe('echo handler', () => {
     expect(reply).toBe('a'.repeat(4096));
   });
 
+  test('truncation does not split a surrogate pair at the 4096 boundary (emoji)', async () => {
+    // Regression guard for the UTF-16 surrogate-split bug. An emoji like 😀
+    // (U+1F600) is two UTF-16 code units (D83D DE00). If it straddles index
+    // 4095/4096, a plain `slice(0, 4096)` keeps a LONE high surrogate at the
+    // tail — invalid UTF-16 that Telegram renders as U+FFFD (�) and that
+    // `JSON.stringify` over the wire encodes as a broken \ud83d escape.
+    const listener = loadEchoListener();
+    // 4095 ASCII + an emoji whose high half lands at index 4095, low half at 4096.
+    const text = 'a'.repeat(4095) + '\u{1F600}' + 'tail';
+    const ctx = makeCtx({ text, from: { id: 41 } });
+    await listener(ctx);
+
+    expect(ctx.reply).toHaveBeenCalledTimes(1);
+    const [reply] = ctx.reply.mock.calls[0];
+
+    // Must stay within Telegram's 4096 UTF-16 code-unit limit...
+    expect(reply.length).toBeLessThanOrEqual(4096);
+    // ...and must NOT end with a lone (unpaired) high surrogate.
+    const lastCode = reply.charCodeAt(reply.length - 1);
+    const endsWithLoneHighSurrogate = lastCode >= 0xd800 && lastCode <= 0xdbff;
+    expect(endsWithLoneHighSurrogate).toBe(false);
+    // The orphaned emoji half is dropped, leaving the 4095 clean chars.
+    expect(reply).toBe('a'.repeat(4095));
+  });
+
+  test('an emoji fully inside the limit is preserved intact (not over-trimmed)', async () => {
+    // The fix must only drop a SPLIT pair — an emoji that fits entirely before
+    // the boundary must survive whole. Guards against an over-eager truncation
+    // that strips any trailing emoji.
+    const listener = loadEchoListener();
+    // Emoji occupies indices 4094 (D83D) + 4095 (DE00); index 4096 is 'X' which
+    // gets cut. The complete pair must remain.
+    const text = 'a'.repeat(4094) + '\u{1F600}' + 'X'.repeat(10);
+    const ctx = makeCtx({ text, from: { id: 42 } });
+    await listener(ctx);
+
+    const [reply] = ctx.reply.mock.calls[0];
+    expect(reply.length).toBe(4096);
+    expect(reply.endsWith('\u{1F600}')).toBe(true);
+    expect(reply.codePointAt(reply.length - 2)).toBe(0x1f600);
+  });
+
   test('rate-limits a single user after 10 messages / minute and does not reply', async () => {
     // `beforeEach` reset modules so the in-handler limiter is genuinely fresh
     // for this test — see the file-level comment.

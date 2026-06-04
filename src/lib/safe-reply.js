@@ -18,7 +18,12 @@ async function safeReply(ctx, text, options) {
     return await ctx.reply(text, options);
   } catch (err) {
     if (err instanceof GrammyError && err.error_code === 429) {
-      const retryAfter = Number(err.parameters?.retry_after) || 1;
+      // `retry_after: 0` is a legitimate "retry immediately" signal from
+      // Telegram — `|| 1` would coerce that valid 0 into a needless 1s stall.
+      // Honor any finite non-negative value; fall back to 1s only for
+      // missing / NaN / negative (malformed) payloads.
+      const suggested = Number(err.parameters?.retry_after);
+      const retryAfter = Number.isFinite(suggested) && suggested >= 0 ? suggested : 1;
       log.warn('safe-reply', 'rate-limited by Telegram, retrying once', { retryAfter });
       await new Promise((r) => setTimeout(r, retryAfter * 1000));
       try {
