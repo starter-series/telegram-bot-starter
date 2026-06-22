@@ -107,9 +107,10 @@ See [docs/TELEGRAM_SETUP.md](docs/TELEGRAM_SETUP.md) for the detailed BotFather 
 |------|-------------|
 | Security audit | `npm audit` for dependency vulnerabilities |
 | Lint | ESLint for code quality |
-| Test | Jest (passes with no tests by default) |
+| Build | Syntax smoke check for shipped JavaScript files |
+| Test | Jest with coverage thresholds |
 | Docker build | Builds the container image to catch build errors |
-| Trivy scan | Scans the container image for CRITICAL/HIGH CVEs |
+| Trivy scan | Gates the container image on CRITICAL CVEs |
 
 ### Security & Maintenance
 
@@ -168,6 +169,7 @@ npm run version:major   # 1.0.0 → 2.0.0
 
 # Lint & test
 npm run lint
+npm run build
 npm test
 ```
 
@@ -241,7 +243,7 @@ This template uses JavaScript for simplicity. To add TypeScript:
 
 1. Add `typescript` and `@types/node` to devDependencies
 2. Add a `tsconfig.json`
-3. Update `npm start` to build and run from `dist/`
+3. Update `npm start` to compile and run from `dist/`
 4. Rename `.js` files to `.ts`
 
 TypeScript is opt-in, not forced. For many bots, JavaScript is all you need.
@@ -266,6 +268,7 @@ The bot exposes a tiny HTTP health server (`src/lib/health.js`) so Docker, Fly.i
 # .env
 HEALTH_PORT=3000   # polling mode only — change if 3000 is already taken
 # PORT=3000        # webhook mode — /health is mounted on this port
+# WEBHOOK_SECRET=  # webhook mode only — required when WEBHOOK_URL is set
 ```
 
 **Fly.io** — add an HTTP service check to `fly.toml`:
@@ -293,15 +296,15 @@ HEALTH_PORT=3000   # polling mode only — change if 3000 is already taken
 - grammY bot with polling (default) and webhook modes, `/start` + `/help` commands, echo handler — all auto-loaded from `src/commands/` and `src/handlers/`.
 - `src/lib/safe-reply.js` — non-throwing reply wrapper that respects Telegram's `429 Retry-After` (100% line coverage).
 - `src/lib/rate-limiter.js`, `src/lib/health.js`, `src/lib/logger.js`.
-- CI: `npm audit`, ESLint, Jest with `--coverage`, Docker build, Trivy CVE scan, CodeQL (weekly), gitleaks (sha256-pinned).
+- CI: `npm audit --audit-level=high`, ESLint, Jest with `--coverage`, Docker build, Trivy CRITICAL CVE scan, CodeQL (weekly), gitleaks (sha256-pinned).
 - CD: Railway and Fly.io workflows with a version-tag guard and auto-generated GitHub Releases.
-- Test suite: 20 tests across `commands`, `health`, `safe-reply` (see `npm test` output).
+- Test suite: Jest covers bootstrap wiring, env validation, lifecycle, commands, handlers, health, logging, rate limiting, and safe replies (see `npm test` output).
 
 **Planned**
 - None. A starter is finished when it ships; further features go into downstream projects, not here.
 
 **Design intent**
-- Two runtime dependencies (`grammy`, `dotenv`) and plain JavaScript — so an LLM extending this repo doesn't have to reason about an ORM, a build step, or a type system to add a command.
+- Two runtime dependencies (`grammy`, `dotenv`) and plain JavaScript — so an LLM extending this repo doesn't have to reason about an ORM, a transpile step, or a type system to add a command.
 - `safe-reply` is non-throwing on purpose: a single rate-limited reply must never crash the polling loop or webhook handler. Errors are logged via the structured logger, not propagated.
 - Auto-loading via `src/commands/index.js` and `src/handlers/index.js`: drop a file in, the bot picks it up — no central registry to edit, fewer merge conflicts for AI-generated PRs.
 - `--ignore-scripts` in CI: lifecycle scripts are a known supply-chain attack surface; the starter opts out by default.

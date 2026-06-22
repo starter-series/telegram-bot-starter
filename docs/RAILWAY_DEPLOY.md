@@ -12,15 +12,18 @@
 In Railway dashboard → your service → **Variables**:
 
 ```
-BOT_TOKEN=your-bot-token
+BOT_TOKEN=<your-bot-token-from-botfather>
 ```
 
 For webhook mode (optional):
 
 ```
 WEBHOOK_URL=https://your-app.up.railway.app
+WEBHOOK_SECRET=<random-hex-secret>
 PORT=3000
 ```
+
+Generate the webhook secret with `openssl rand -hex 32`.
 
 ## 3. Get Deployment Credentials
 
@@ -56,7 +59,7 @@ Go to your repo → **Settings** → **Secrets and variables** → **Actions**:
 ### Bot doesn't respond
 - Check Railway logs for errors
 - Verify `BOT_TOKEN` is set correctly in Railway Variables
-- If using webhook, ensure `WEBHOOK_URL` matches Railway's assigned domain
+- If using webhook, ensure `WEBHOOK_URL` matches Railway's assigned domain and `WEBHOOK_SECRET` is set
 
 ### Deploy fails
 - Check that `RAILWAY_TOKEN` and `RAILWAY_SERVICE_ID` are correct

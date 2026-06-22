@@ -35,7 +35,7 @@ Send these commands to [@BotFather](https://t.me/BotFather) to customize your bo
 
 2. Fill in your bot token:
    ```bash
-   BOT_TOKEN=your-bot-token-from-step-1
+   BOT_TOKEN=<your-bot-token-from-botfather>
    ```
 
 ## 4. Choose: Polling vs Webhook
@@ -60,8 +60,9 @@ npm run dev
 Set these environment variables in `.env`:
 
 ```bash
-BOT_TOKEN=your-bot-token
+BOT_TOKEN=<your-bot-token-from-botfather>
 WEBHOOK_URL=https://your-domain.com/webhook
+WEBHOOK_SECRET=<random-hex-secret>
 PORT=3000
 ```
 
@@ -69,6 +70,13 @@ Requirements for webhooks:
 - Your server must be reachable from the internet
 - HTTPS is required (Telegram will not send updates to HTTP URLs)
 - The port must be one of: 443, 80, 88, or 8443
+- `WEBHOOK_SECRET` is required so grammY can verify Telegram's secret-token header
+
+Generate a webhook secret:
+
+```bash
+openssl rand -hex 32
+```
 
 > **Tip:** For local development with webhooks, use [ngrok](https://ngrok.com/):
 > ```bash

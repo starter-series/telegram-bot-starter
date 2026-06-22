@@ -25,14 +25,16 @@ Edit `fly.toml` and update the app name.
 ## 3. Set Secrets
 
 ```bash
-fly secrets set BOT_TOKEN=your-bot-token
+fly secrets set BOT_TOKEN=<your-bot-token-from-botfather>
 ```
 
 For webhook mode (optional):
 
 ```bash
-fly secrets set WEBHOOK_URL=https://your-app.fly.dev PORT=3000
+fly secrets set WEBHOOK_URL=https://your-app.fly.dev WEBHOOK_SECRET=<random-hex-secret> PORT=3000
 ```
+
+Generate the webhook secret with `openssl rand -hex 32`.
 
 ## 4. Get Deploy Token
 

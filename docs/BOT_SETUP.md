@@ -17,7 +17,7 @@ cp .env.example .env
 Edit `.env` and paste your token:
 
 ```
-BOT_TOKEN=123456789:ABCdefGHIjklMNOpqrSTUvwxYZ
+BOT_TOKEN=<your-bot-token-from-botfather>
 ```
 
 ## 3. Test Locally
@@ -56,7 +56,9 @@ To use webhook mode, set in `.env`:
 
 ```
 WEBHOOK_URL=https://your-domain.com
+WEBHOOK_SECRET=<random-hex-secret>
 PORT=3000
 ```
 
 > **Note:** Webhook requires HTTPS. Most deployment platforms (Railway, Fly.io) provide this automatically.
+> Generate `WEBHOOK_SECRET` with `openssl rand -hex 32`.
