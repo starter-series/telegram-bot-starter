@@ -25,6 +25,7 @@ In the Railway dashboard, go to your service > **Variables** and add:
 |----------|-------|----------|
 | `BOT_TOKEN` | Your bot token from BotFather | Yes |
 | `WEBHOOK_URL` | Your Railway public URL + `/webhook` | No (for webhook mode) |
+| `WEBHOOK_SECRET` | Random secret from `openssl rand -hex 32` | Yes when `WEBHOOK_URL` is set |
 | `PORT` | Railway assigns automatically | No |
 
 > **Polling vs Webhook on Railway:** Long polling works out of the box. For webhook mode, use the Railway-provided URL (found in service **Settings** > **Networking** > **Public Networking**).
@@ -102,12 +103,13 @@ When prompted:
 ### 3. Set Environment Variables
 
 ```bash
-flyctl secrets set BOT_TOKEN=your-bot-token
+flyctl secrets set BOT_TOKEN=<your-bot-token-from-botfather>
 ```
 
 For webhook mode:
 ```bash
-flyctl secrets set BOT_TOKEN=your-bot-token WEBHOOK_URL=https://your-app.fly.dev/webhook
+flyctl secrets set BOT_TOKEN=<your-bot-token-from-botfather> WEBHOOK_URL=https://your-app.fly.dev/webhook
+flyctl secrets set WEBHOOK_SECRET=<random-hex-secret>
 ```
 
 > Secrets are encrypted and not visible after setting. Use `flyctl secrets list` to see which secrets are set.
@@ -144,6 +146,7 @@ The workflow runs CI first, then deploys to Fly.io and creates a GitHub Release.
 |----------|-------------|----------|---------|
 | `BOT_TOKEN` | Bot token from BotFather | Yes | — |
 | `WEBHOOK_URL` | Full webhook URL (e.g., `https://app.fly.dev/webhook`) | No | — (uses polling) |
+| `WEBHOOK_SECRET` | Random secret used to verify Telegram webhook requests | Yes when `WEBHOOK_URL` is set | — |
 | `PORT` | HTTP port for webhook server | No | `3000` |
 
 ---
@@ -226,6 +229,7 @@ The workflow runs CI first, then deploys to Fly.io and creates a GitHub Release.
 ### Webhook returns errors after deploy
 
 - Verify `WEBHOOK_URL` ends with `/webhook` (or your configured path)
+- Verify `WEBHOOK_SECRET` is set and matches the secret used by the running app
 - Check that the URL uses HTTPS
 - View webhook status: `curl https://api.telegram.org/bot<TOKEN>/getWebhookInfo`
 - Re-set the webhook if needed: the bot auto-registers it on startup

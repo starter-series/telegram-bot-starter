@@ -57,10 +57,25 @@ describe('buildStartupErrorHandler', () => {
     expect(parsed.extra.stack).toBeUndefined();
   });
 
+  test('force-kill timer is cleared after shutdown returns', async () => {
+    jest.useFakeTimers();
+    try {
+      const shutdown = jest.fn();
+      const handler = buildStartupErrorHandler('polling', shutdown, { forceExitMs: 5000 });
+      handler(new Error('bad token'));
+
+      await Promise.resolve();
+      jest.advanceTimersByTime(5000);
+      expect(exitSpy).not.toHaveBeenCalled();
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
   test('force-kill timer fires process.exit(1) when shutdown does not return', () => {
     jest.useFakeTimers();
     try {
-      const shutdown = jest.fn(); // never resolves the close
+      const shutdown = jest.fn(() => new Promise(() => {})); // never resolves the close
       const handler = buildStartupErrorHandler('polling', shutdown, { forceExitMs: 5000 });
       handler(new Error('hang'));
 
