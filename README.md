@@ -31,6 +31,7 @@ Build your bot. Push to deploy.
 ```bash
 npx @starter-series/create my-telegram-bot --template telegram-bot
 cd my-telegram-bot && npm install
+npm run preflight
 cp .env.example .env  # fill in BOT_TOKEN from @BotFather
 npm run dev
 ```
@@ -40,6 +41,7 @@ npm run dev
 ```bash
 git clone https://github.com/starter-series/telegram-bot-starter my-telegram-bot
 cd my-telegram-bot && npm install
+npm run preflight
 cp .env.example .env
 npm run dev
 ```
@@ -161,6 +163,9 @@ npm run dev
 
 # Or use Docker
 docker compose up
+
+# Token-free preflight: syntax smoke + Jest
+npm run preflight
 
 # Bump version (updates package.json)
 npm run version:patch   # 1.0.0 → 1.0.1

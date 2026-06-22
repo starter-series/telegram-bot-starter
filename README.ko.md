@@ -31,6 +31,7 @@
 ```bash
 npx @starter-series/create my-telegram-bot --template telegram-bot
 cd my-telegram-bot && npm install
+npm run preflight
 cp .env.example .env  # @BotFather에서 받은 BOT_TOKEN 입력
 npm run dev
 ```
@@ -40,6 +41,7 @@ npm run dev
 ```bash
 git clone https://github.com/starter-series/telegram-bot-starter my-telegram-bot
 cd my-telegram-bot && npm install
+npm run preflight
 cp .env.example .env
 npm run dev
 ```
@@ -161,6 +163,9 @@ npm run dev
 
 # Docker 사용
 docker compose up
+
+# 토큰 없는 preflight: syntax smoke + Jest
+npm run preflight
 
 # 버전 범프
 npm run version:patch   # 1.0.0 → 1.0.1
