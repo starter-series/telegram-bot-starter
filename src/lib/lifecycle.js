@@ -3,6 +3,7 @@ const { webhookCallback } = require('grammy');
 const log = require('./logger');
 const { createHealthServer, createHealthHandler } = require('./health');
 const { buildStartupErrorHandler } = require('./startup-errors');
+const { setTimer } = require('./timers');
 
 /**
  * Lifecycle wiring for the bot entry point, extracted from `src/index.js` so it
@@ -114,7 +115,7 @@ function buildProcessGuards({ shutdown, proc = process, forceExitMs = 5000 }) {
     // container would never exit. Force-kill after `forceExitMs` so the
     // orchestrator (Docker / Fly / Railway) can restart us. `.unref()` lets the
     // process exit earlier if graceful shutdown wins the race.
-    setTimeout(() => proc.exit(1), forceExitMs).unref();
+    setTimer(() => proc.exit(1), forceExitMs).unref?.();
     shutdown('uncaughtException', 1);
   };
 

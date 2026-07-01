@@ -29,7 +29,7 @@ Build your bot. Push to deploy.
 **Via [create-starter](https://github.com/starter-series/create-starter)** (recommended):
 
 ```bash
-npx @starter-series/create my-telegram-bot --template telegram-bot
+gh repo create my-telegram-bot --template starter-series/telegram-bot-starter --clone
 cd my-telegram-bot && npm install
 npm run preflight
 cp .env.example .env  # fill in BOT_TOKEN from @BotFather

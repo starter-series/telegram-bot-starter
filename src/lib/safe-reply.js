@@ -1,5 +1,6 @@
 const { GrammyError, HttpError } = require('grammy');
 const log = require('./logger');
+const { delay } = require('./timers');
 
 /**
  * Send a reply that survives transient Telegram errors.
@@ -25,7 +26,7 @@ async function safeReply(ctx, text, options) {
       const suggested = Number(err.parameters?.retry_after);
       const retryAfter = Number.isFinite(suggested) && suggested >= 0 ? suggested : 1;
       log.warn('safe-reply', 'rate-limited by Telegram, retrying once', { retryAfter });
-      await new Promise((r) => setTimeout(r, retryAfter * 1000));
+      await delay(retryAfter * 1000);
       try {
         return await ctx.reply(text, options);
       } catch (retryErr) {
