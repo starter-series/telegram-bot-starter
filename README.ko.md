@@ -29,7 +29,7 @@
 **[create-starter](https://github.com/starter-series/create-starter) 사용** (권장):
 
 ```bash
-npx @starter-series/create my-telegram-bot --template telegram-bot
+gh repo create my-telegram-bot --template starter-series/telegram-bot-starter --clone
 cd my-telegram-bot && npm install
 npm run preflight
 cp .env.example .env  # @BotFather에서 받은 BOT_TOKEN 입력

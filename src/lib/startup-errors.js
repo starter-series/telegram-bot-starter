@@ -1,4 +1,5 @@
 const log = require('./logger');
+const { clearTimer, setTimer } = require('./timers');
 
 /**
  * Build a `.catch` handler for a startup-time async API call (`bot.start()`,
@@ -32,10 +33,10 @@ function buildStartupErrorHandler(scope, shutdown, opts = {}) {
     });
     // Bound shutdown. If `bot.stop()` hangs on a half-initialized client the
     // orchestrator (Docker/Fly/Railway) must still be able to restart us.
-    const forceExitTimer = setTimeout(() => process.exit(1), forceExitMs);
-    forceExitTimer.unref();
+    const forceExitTimer = setTimer(() => process.exit(1), forceExitMs);
+    forceExitTimer.unref?.();
     Promise.resolve(shutdown(`${scope}-startup-failure`, 1)).finally(() => {
-      clearTimeout(forceExitTimer);
+      clearTimer(forceExitTimer);
     });
   };
 }

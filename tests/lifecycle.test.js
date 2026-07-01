@@ -5,6 +5,7 @@
 // shutdown ORDER, the webhook secret_token, the 5s force-kill, and the
 // deliberate "unhandledRejection does not shut down" decision.
 
+const { setImmediate: nodeSetImmediate } = require('node:timers');
 const {
   selectTransport,
   buildShutdown,
@@ -12,6 +13,14 @@ const {
   buildWebhookTransport,
   buildPollingTransport,
 } = require('../src/lib/lifecycle');
+
+function flushImmediate() {
+  const schedule =
+    typeof globalThis.setImmediate === 'function'
+      ? globalThis.setImmediate
+      : nodeSetImmediate;
+  return new Promise((resolve) => schedule(resolve));
+}
 
 describe('selectTransport', () => {
   test('picks webhook when webhookUrl is a non-empty string', () => {
@@ -346,7 +355,7 @@ describe('buildWebhookTransport', () => {
         webhookCallbackFn: jest.fn(() => () => {}),
       });
       // Let the rejected setWebhook promise settle.
-      await new Promise((r) => setImmediate(r));
+      await flushImmediate();
       expect(shutdown).toHaveBeenCalledWith('webhook-startup-failure', 1);
     } finally {
       errSpy.mockRestore();
@@ -390,7 +399,7 @@ describe('buildPollingTransport', () => {
     const errSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
     try {
       buildPollingTransport({ bot, shutdown: jest.fn(), createHealthServerFn: () => healthServer });
-      await new Promise((r) => setImmediate(r));
+      await flushImmediate();
       expect(errSpy).toHaveBeenCalledWith(expect.stringContaining('Failed to start health server'));
     } finally {
       errSpy.mockRestore();
@@ -406,7 +415,7 @@ describe('buildPollingTransport', () => {
 
     try {
       buildPollingTransport({ bot, shutdown, createHealthServerFn: () => healthServer });
-      await new Promise((r) => setImmediate(r));
+      await flushImmediate();
       expect(shutdown).toHaveBeenCalledWith('polling-startup-failure', 1);
     } finally {
       errSpy.mockRestore();
