@@ -36,7 +36,7 @@ function snapshot(bot, mode) {
  * @returns {import('http').RequestListener}
  */
 function createHealthHandler(bot, mode, fallback) {
-  return (req, res) => {
+  return async (req, res) => {
     if (req.method === 'GET' && req.url === '/health') {
       const { ready, body } = snapshot(bot, mode);
       res.writeHead(ready ? 200 : 503, { 'Content-Type': 'application/json' });
@@ -45,7 +45,18 @@ function createHealthHandler(bot, mode, fallback) {
     }
 
     if (fallback) {
-      fallback(req, res);
+      // grammY's webhookCallback handler is async and rejects in reachable
+      // cases (malformed body, request timeout). Await + catch so the rejection
+      // cannot leak as an unhandledRejection and the socket is always answered.
+      try {
+        await fallback(req, res);
+      } catch (err) {
+        log.error('health', 'Fallback handler error', { error: String(err) });
+        if (!res.headersSent && !res.writableEnded) {
+          res.writeHead(500, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ error: 'internal_error' }));
+        }
+      }
       return;
     }
 

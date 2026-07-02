@@ -143,4 +143,36 @@ describe('health handler (webhook mode, mounted on existing server)', () => {
       await new Promise((resolve) => server.close(() => resolve()));
     }
   });
+
+  test('a rejecting async fallback yields a 500 and never leaks a rejection', async () => {
+    const bot = fakeBot({ inited: true });
+    // grammY's webhookCallback rejects on malformed bodies / timeouts. Simulate
+    // that with a fallback that rejects without writing a response.
+    const fallback = async () => {
+      throw new Error('boom');
+    };
+    const handler = createHealthHandler(bot, 'webhook', fallback);
+    const server = await new Promise((resolve) => {
+      const s = http.createServer(handler);
+      s.listen(0, () => resolve(s));
+    });
+    const { port } = server.address();
+
+    const rejections = [];
+    const onRejection = (reason) => rejections.push(reason);
+    process.on('unhandledRejection', onRejection);
+
+    try {
+      const res = await get(port, '/webhook');
+      expect(res.status).toBe(500);
+      const body = JSON.parse(res.body);
+      expect(body.error).toBe('internal_error');
+      // Give any escaped rejection a tick to surface before asserting none did.
+      await new Promise((resolve) => setImmediate(resolve));
+      expect(rejections).toEqual([]);
+    } finally {
+      process.removeListener('unhandledRejection', onRejection);
+      await new Promise((resolve) => server.close(() => resolve()));
+    }
+  });
 });
